@@ -1,0 +1,39 @@
+.story-card,
+.form-card {
+  padding: 2rem;
+}
+
+.story-card {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.story-rail {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.story-rail div {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(20, 34, 47, 0.09);
+  color: var(--ink-soft);
+}
+
+.form-card {
+  animation: rise-in 180ms ease-out;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

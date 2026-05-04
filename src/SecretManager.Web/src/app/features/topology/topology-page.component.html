@@ -1,0 +1,240 @@
+<section class="workspace-page">
+  <div class="page-intro">
+    <div>
+      <p class="eyebrow">Topology</p>
+      <h2>Manage the deployment surface.</h2>
+      <p class="lede">
+        Environments anchor the topology. Node groups partition rollout targets within an
+        environment, and managed nodes hold the concrete host details that agents attach to.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="refresh()" [disabled]="store.loading()">
+      {{ store.loading() ? 'Refreshing...' : 'Refresh topology' }}
+    </button>
+  </div>
+
+  @if (store.errorMessage()) {
+    <div class="banner banner-error">{{ store.errorMessage() }}</div>
+  }
+
+  <div class="resource-grid topology-grid">
+    <section class="surface-card resource-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Environments</p>
+          <h3>Deployment rings</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetEnvironmentForm()">New</button>
+      </div>
+
+      <div class="resource-list">
+        @for (environment of store.environments(); track environment.environmentId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedEnvironmentId() === environment.environmentId"
+            (click)="selectEnvironment(environment)">
+            <strong>{{ environment.name }}</strong>
+            <small>{{ environment.slug }}</small>
+          </button>
+        }
+      </div>
+
+      @if (selectedEnvironment(); as environment) {
+        <dl class="meta-list">
+          <div>
+            <dt>Protection</dt>
+            <dd>{{ environment.isProtected ? 'Protected' : 'Standard' }}</dd>
+          </div>
+          <div>
+            <dt>Description</dt>
+            <dd>{{ environment.description || 'No description' }}</dd>
+          </div>
+        </dl>
+      }
+
+      <form class="editor-grid" (ngSubmit)="saveEnvironment()">
+        <label class="field">
+          <span>Name</span>
+          <input [(ngModel)]="environmentForm.name" name="environmentName" type="text" />
+        </label>
+        <label class="field">
+          <span>Slug</span>
+          <input [(ngModel)]="environmentForm.slug" name="environmentSlug" type="text" />
+        </label>
+        <label class="field field--full">
+          <span>Description</span>
+          <textarea [(ngModel)]="environmentForm.description" name="environmentDescription"></textarea>
+        </label>
+        <label class="checkbox-row field--full">
+          <input [(ngModel)]="environmentForm.isProtected" name="environmentProtected" type="checkbox" />
+          Protected environment
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit">{{ environmentEditingId ? 'Save environment' : 'Create environment' }}</button>
+          <button class="ghost-button" type="button" (click)="deleteEnvironment()" [disabled]="!environmentEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Node Groups</p>
+          <h3>Rollout partitions</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetNodeGroupForm()" [disabled]="!selectedEnvironmentId()">
+          New
+        </button>
+      </div>
+
+      <div class="resource-list">
+        @for (nodeGroup of nodeGroupsForEnvironment(); track nodeGroup.nodeGroupId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedNodeGroupId() === nodeGroup.nodeGroupId"
+            (click)="selectNodeGroup(nodeGroup)">
+            <strong>{{ nodeGroup.name }}</strong>
+            <small>{{ nodeGroup.slug }}</small>
+          </button>
+        } @empty {
+          <p class="empty-state">Select an environment, then create node groups to segment rollout targets.</p>
+        }
+      </div>
+
+      @if (selectedNodeGroup(); as nodeGroup) {
+        <dl class="meta-list">
+          <div>
+            <dt>Environment</dt>
+            <dd>{{ selectedEnvironment()?.name }}</dd>
+          </div>
+          <div>
+            <dt>Description</dt>
+            <dd>{{ nodeGroup.description || 'No description' }}</dd>
+          </div>
+        </dl>
+      }
+
+      <form class="editor-grid" (ngSubmit)="saveNodeGroup()">
+        <label class="field">
+          <span>Name</span>
+          <input [(ngModel)]="nodeGroupForm.name" name="nodeGroupName" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field">
+          <span>Slug</span>
+          <input [(ngModel)]="nodeGroupForm.slug" name="nodeGroupSlug" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field field--full">
+          <span>Description</span>
+          <textarea [(ngModel)]="nodeGroupForm.description" name="nodeGroupDescription" [disabled]="!selectedEnvironmentId()"></textarea>
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedEnvironmentId()">
+            {{ nodeGroupEditingId ? 'Save node group' : 'Create node group' }}
+          </button>
+          <button class="ghost-button" type="button" (click)="deleteNodeGroup()" [disabled]="!nodeGroupEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Managed Nodes</p>
+          <h3>Concrete hosts</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetNodeForm()" [disabled]="!selectedEnvironmentId()">
+          New
+        </button>
+      </div>
+
+      <div class="resource-list">
+        @for (node of nodesForEnvironment(); track node.nodeId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedNodeId() === node.nodeId"
+            (click)="selectNode(node)">
+            <strong>{{ node.name }}</strong>
+            <small>{{ node.hostname }} · {{ resolveNodeGroupName(node.nodeGroupId) }}</small>
+          </button>
+        } @empty {
+          <p class="empty-state">Managed nodes attach the real agent hosts to the selected environment.</p>
+        }
+      </div>
+
+      @if (selectedNode(); as node) {
+        <dl class="meta-list">
+          <div>
+            <dt>Status</dt>
+            <dd>{{ node.status }}</dd>
+          </div>
+          <div>
+            <dt>Agent version</dt>
+            <dd>{{ node.agentVersion || 'Unknown' }}</dd>
+          </div>
+          <div>
+            <dt>Rollout default</dt>
+            <dd>{{ node.rolloutPolicyDefault || 'immediate' }}</dd>
+          </div>
+        </dl>
+      }
+
+      <form class="editor-grid" (ngSubmit)="saveNode()">
+        <label class="field">
+          <span>Name</span>
+          <input [(ngModel)]="nodeForm.name" name="nodeName" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field">
+          <span>Hostname</span>
+          <input [(ngModel)]="nodeForm.hostname" name="nodeHostname" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field">
+          <span>Node group</span>
+          <select [(ngModel)]="nodeForm.nodeGroupId" name="nodeNodeGroup" [disabled]="!selectedEnvironmentId()">
+            <option [ngValue]="null">Direct environment assignment</option>
+            @for (nodeGroup of nodeGroupsForEnvironment(); track nodeGroup.nodeGroupId) {
+              <option [ngValue]="nodeGroup.nodeGroupId">{{ nodeGroup.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span>Platform</span>
+          <input [(ngModel)]="nodeForm.platform" name="nodePlatform" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field">
+          <span>Status</span>
+          <input [(ngModel)]="nodeForm.status" name="nodeStatus" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field">
+          <span>Agent version</span>
+          <input [(ngModel)]="nodeForm.agentVersion" name="nodeAgentVersion" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+        <label class="field field--full">
+          <span>Rollout policy default</span>
+          <input [(ngModel)]="nodeForm.rolloutPolicyDefault" name="nodeRolloutPolicy" type="text" [disabled]="!selectedEnvironmentId()" />
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedEnvironmentId()">
+            {{ nodeEditingId ? 'Save node' : 'Create node' }}
+          </button>
+          <button class="ghost-button" type="button" (click)="deleteNode()" [disabled]="!nodeEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

@@ -1,0 +1,35 @@
+.login-shell {
+  display: grid;
+  place-items: center;
+}
+
+.login-grid {
+  grid-template-columns: minmax(18rem, 22rem) minmax(20rem, 30rem);
+  align-items: stretch;
+}
+
+.overview-card,
+.login-card {
+  padding: 2rem;
+}
+
+.overview-card {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.checklist {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.checklist div {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--ink-soft);
+}
+
+.compact-row {
+  align-items: flex-start;
+}

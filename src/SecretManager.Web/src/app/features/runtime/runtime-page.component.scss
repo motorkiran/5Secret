@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.runtime-filter-card {
+  margin-bottom: 1.25rem;
+}
+
+.runtime-filter-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.runtime-filter-actions {
+  justify-content: flex-start;
+}
+
+.runtime-grid {
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.runtime-card {
+  align-self: start;
+}
+
+.runtime-card--wide {
+  min-width: 0;
+}
+
+.runtime-audit-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.runtime-audit-list {
+  max-height: 26rem;
+}
+
+.runtime-audit-detail {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.runtime-audit-payload pre {
+  margin: 0;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  .runtime-filter-grid,
+  .runtime-grid,
+  .runtime-audit-layout {
+    grid-template-columns: 1fr;
+  }
+}

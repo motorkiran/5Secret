@@ -1,0 +1,53 @@
+<section class="page-shell login-shell">
+  <div class="page-grid login-grid">
+    <article class="surface-card overview-card">
+      <p class="eyebrow">Operator Access</p>
+      <h1>{{ sessionStore.installationName() || 'Secret Manager' }}</h1>
+      <p class="lede">
+        Sign in with a local operator account to manage catalog entries, publish immutable
+        versions, and observe agent rollout state.
+      </p>
+
+      <div class="checklist">
+        <div>
+          <span class="status-pill">Bootstrap complete</span>
+          <p>The installation is initialized and accepting authenticated sessions.</p>
+        </div>
+        <div>
+          <span class="status-pill">Cookie auth</span>
+          <p>Successful login creates the same operator session used by the control-plane API.</p>
+        </div>
+      </div>
+    </article>
+
+    <section class="surface-card login-card">
+      <p class="eyebrow">Local Sign In</p>
+      <h2>Open the operator shell</h2>
+
+      @if (sessionStore.errorMessage()) {
+        <div class="banner banner-error">{{ sessionStore.errorMessage() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field-grid">
+          <label class="field">
+            <span>Username</span>
+            <input type="text" formControlName="username" autocomplete="username" />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input type="password" formControlName="password" autocomplete="current-password" />
+          </label>
+        </div>
+
+        <div class="action-row compact-row">
+          <p class="field-hint">The session cookie stays local to this control-plane host.</p>
+          <button class="action-button" type="submit" [disabled]="sessionStore.isBusy()">
+            {{ sessionStore.busyAction() === 'login' ? 'Signing in...' : 'Sign in' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

@@ -1,0 +1,179 @@
+<section class="workspace-page">
+  <div class="page-intro">
+    <div>
+      <p class="eyebrow">Runtime</p>
+      <h2>Agent freshness and audit visibility.</h2>
+      <p class="lede">
+        Agent status, freshness, and audit history stay visible in one place so operators can
+        inspect runtime health without leaving the control plane.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="refresh()" [disabled]="activeOperation() !== null">
+      {{ activeOperation() === 'refresh-runtime' ? 'Refreshing...' : 'Refresh runtime' }}
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="banner banner-error">{{ errorMessage() }}</div>
+  }
+
+  <section class="surface-card resource-card runtime-filter-card">
+    <div class="resource-card__header">
+      <div>
+        <p class="eyebrow">Filters</p>
+        <h3>Focus the runtime signal</h3>
+      </div>
+    </div>
+
+    <div class="editor-grid runtime-filter-grid">
+      <label class="field">
+        <span>Environment</span>
+        <select [(ngModel)]="environmentFilterId" name="runtimeEnvironmentFilter">
+          <option value="">All environments</option>
+          @for (environment of topologyStore.environments(); track environment.environmentId) {
+            <option [value]="environment.environmentId">{{ environment.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Audit rows</span>
+        <select [(ngModel)]="auditTake" name="auditTake">
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+          <option [ngValue]="200">200</option>
+        </select>
+      </label>
+
+      <div class="editor-actions runtime-filter-actions">
+        <button class="action-button" type="button" (click)="applyFilters()" [disabled]="activeOperation() !== null">
+          Apply filters
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="resource-grid runtime-grid">
+    <section class="surface-card resource-card runtime-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Agents</p>
+          <h3>Current node health</h3>
+        </div>
+      </div>
+
+      <div class="resource-list compact-list">
+        @for (agent of agents(); track agent.agentId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedAgentId() === agent.agentId"
+            (click)="selectAgent(agent.agentId)">
+            <strong>{{ resolveNodeName(agent.managedNodeId) }} · {{ agent.hostname }}</strong>
+            <small>{{ agent.healthStatus }} · {{ resolveEnvironmentName(agent.environmentId) }}</small>
+          </button>
+        } @empty {
+          <p class="empty-state">No enrolled agents match the selected environment filter.</p>
+        }
+      </div>
+
+      @if (agentDetail(); as agent) {
+        <dl class="meta-list">
+          <div>
+            <dt>Health state</dt>
+            <dd>{{ agent.healthStatus }}</dd>
+          </div>
+          <div>
+            <dt>Freshness</dt>
+            <dd>{{ describeAgentFreshness(agent) }}</dd>
+          </div>
+          <div>
+            <dt>Node group</dt>
+            <dd>{{ resolveNodeGroupName(agent.nodeGroupId) }}</dd>
+          </div>
+          <div>
+            <dt>Agent version</dt>
+            <dd>{{ agent.agentVersion }}</dd>
+          </div>
+          <div>
+            <dt>Current published version</dt>
+            <dd>
+              {{ agent.currentVersionNumber ? 'Version ' + agent.currentVersionNumber : 'No version reported' }}
+            </dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="empty-state">Select an agent to inspect current runtime detail.</p>
+      }
+    </section>
+
+    <section class="surface-card resource-card runtime-card runtime-card--wide">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Audit Events</p>
+          <h3>Recent operator and system history</h3>
+        </div>
+      </div>
+
+      <div class="runtime-audit-layout">
+        <div class="resource-list compact-list runtime-audit-list">
+          @for (auditEvent of auditEvents(); track auditEvent.eventId) {
+            <button
+              class="resource-item"
+              type="button"
+              [class.is-active]="selectedAuditEventId() === auditEvent.eventId"
+              (click)="selectAuditEvent(auditEvent.eventId)">
+              <strong>{{ auditEvent.action }}</strong>
+              <small>
+                {{ auditEvent.outcome }} · {{ auditEvent.targetType }} ·
+                {{ auditEvent.occurredAtUtc | date: 'medium' }}
+              </small>
+            </button>
+          } @empty {
+            <p class="empty-state">No audit events were returned for the selected filter.</p>
+          }
+        </div>
+
+        <div class="runtime-audit-detail">
+          @if (auditDetail(); as auditEvent) {
+            <dl class="meta-list">
+              <div>
+                <dt>Action</dt>
+                <dd>{{ auditEvent.action }}</dd>
+              </div>
+              <div>
+                <dt>Outcome</dt>
+                <dd>{{ auditEvent.outcome }}</dd>
+              </div>
+              <div>
+                <dt>Actor</dt>
+                <dd>{{ auditEvent.actorUsername || 'System' }}</dd>
+              </div>
+              <div>
+                <dt>Target</dt>
+                <dd>{{ auditEvent.targetType }} · {{ auditEvent.targetDisplayName }}</dd>
+              </div>
+              <div>
+                <dt>Correlation</dt>
+                <dd class="code-block">{{ auditEvent.correlationId }}</dd>
+              </div>
+              <div>
+                <dt>Remote IP</dt>
+                <dd>{{ auditEvent.remoteIpAddress || 'Not recorded' }}</dd>
+              </div>
+            </dl>
+
+            <div class="runtime-audit-payload">
+              <p class="eyebrow">Detail payload</p>
+              <pre class="code-block">{{ formatDetailsJson(auditEvent.detailsJson) }}</pre>
+            </div>
+          } @else {
+            <p class="empty-state">Select an audit event to inspect its detail payload.</p>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</section>

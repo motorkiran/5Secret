@@ -1,0 +1,83 @@
+<section class="page-shell">
+  <div class="page-grid">
+    <article class="surface-card story-card">
+      <p class="eyebrow">Initial Bootstrap</p>
+      <h1>Seal the control plane before anyone else touches it.</h1>
+      <p class="lede">
+        The first operator defines the installation name and creates the root owner account.
+        After this step, the bootstrap endpoint closes and all further access moves through
+        authenticated workflows.
+      </p>
+
+      <div class="story-rail">
+        <div>
+          <span class="status-pill">Single-use path</span>
+          <p>Only available until the installation is initialized.</p>
+        </div>
+        <div>
+          <span class="status-pill">Root owner</span>
+          <p>The first account starts with full operator permissions.</p>
+        </div>
+        <div>
+          <span class="status-pill">Cookie session</span>
+          <p>Successful bootstrap immediately transitions into the standard login flow.</p>
+        </div>
+      </div>
+    </article>
+
+    <section class="surface-card form-card">
+      <p class="eyebrow">Installation Setup</p>
+      <h2>Bootstrap the installation</h2>
+      <p class="lede">Choose the operator identity that will own the initial installation.</p>
+
+      @if (sessionStore.errorMessage()) {
+        <div class="banner banner-error">{{ sessionStore.errorMessage() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field-grid">
+          <label class="field">
+            <span>Installation name</span>
+            <input type="text" formControlName="installationName" autocomplete="organization" />
+          </label>
+        </div>
+
+        <div class="field-grid two-up">
+          <label class="field">
+            <span>Owner display name</span>
+            <input type="text" formControlName="ownerDisplayName" autocomplete="name" />
+          </label>
+
+          <label class="field">
+            <span>Owner username</span>
+            <input type="text" formControlName="ownerUsername" autocomplete="username" />
+          </label>
+        </div>
+
+        <div class="field-grid two-up">
+          <label class="field">
+            <span>Password</span>
+            <input type="password" formControlName="password" autocomplete="new-password" />
+            <span class="field-hint">Use at least 12 characters.</span>
+          </label>
+
+          <label class="field">
+            <span>Confirm password</span>
+            <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+          </label>
+        </div>
+
+        @if (passwordsMismatch()) {
+          <p class="field-error">Passwords must match before the installation can be created.</p>
+        }
+
+        <div class="action-row">
+          <p class="field-hint">This action is expected exactly once for a fresh installation.</p>
+          <button class="action-button" type="submit" [disabled]="sessionStore.isBusy()">
+            {{ sessionStore.busyAction() === 'bootstrap' ? 'Sealing installation...' : 'Bootstrap installation' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

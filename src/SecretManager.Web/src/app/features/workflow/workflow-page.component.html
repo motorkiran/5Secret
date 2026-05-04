@@ -1,0 +1,368 @@
+<section class="workspace-page">
+  <div class="page-intro">
+    <div>
+      <p class="eyebrow">Workflow</p>
+      <h2>Drafts, previews, publishes, and rollback.</h2>
+      <p class="lede">
+        Draft values stay editable inside one operator surface with effective previews for a live
+        node target, masked secret handling, publish history, and rollback controls.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="refresh()" [disabled]="activeOperation() !== null">
+      {{ activeOperation() === 'refresh-workflow' ? 'Refreshing...' : 'Refresh workflow' }}
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="banner banner-error">{{ errorMessage() }}</div>
+  }
+
+  <section class="surface-card resource-card workflow-context-card">
+    <div class="resource-card__header">
+      <div>
+        <p class="eyebrow">Context</p>
+        <h3>Choose the live workflow target</h3>
+      </div>
+      <span class="status-pill">Secret values masked</span>
+    </div>
+
+    <div class="editor-grid">
+      <label class="field">
+        <span>Application</span>
+        <select
+          [ngModel]="selectedApplicationId()"
+          (ngModelChange)="selectedApplicationId.set($event || null)">
+          @for (application of topologyStore.applications(); track application.applicationId) {
+            <option [ngValue]="application.applicationId">{{ application.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Environment</span>
+        <select
+          [ngModel]="selectedEnvironmentId()"
+          (ngModelChange)="selectedEnvironmentId.set($event || null)">
+          @for (environment of topologyStore.environments(); track environment.environmentId) {
+            <option [ngValue]="environment.environmentId">{{ environment.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Managed node preview target</span>
+        <select
+          [ngModel]="selectedManagedNodeId()"
+          (ngModelChange)="selectedManagedNodeId.set($event || null)">
+          @for (node of nodesForEnvironment(); track node.nodeId) {
+            <option [ngValue]="node.nodeId">{{ node.name }} · {{ node.hostname }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Namespace filter</span>
+        <select
+          [ngModel]="selectedNamespaceId()"
+          (ngModelChange)="selectNamespace($event || null)">
+          <option [ngValue]="null">All namespaces</option>
+          @for (catalogNamespace of namespacesForApplication(); track catalogNamespace.namespaceId) {
+            <option [ngValue]="catalogNamespace.namespaceId">{{ catalogNamespace.path }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div class="resource-grid workflow-grid">
+    <section class="surface-card resource-card workflow-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Config Items</p>
+          <h3>Choose the key you are drafting</h3>
+        </div>
+
+        @if (selectedConfigItem(); as configItem) {
+          <span class="status-pill">{{ configItem.isSecret ? 'Secret item' : 'Plain value' }}</span>
+        }
+      </div>
+
+      <div class="resource-list compact-list">
+        @for (configItem of configItemsForApplication(); track configItem.configItemId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedConfigItemId() === configItem.configItemId"
+            (click)="selectConfigItem(configItem)">
+            <strong>{{ configItem.fullPath }}</strong>
+            <small>
+              {{ configItem.valueType }} · {{ configItem.isSecret ? 'secret' : 'plain' }} ·
+              {{ configItem.defaultRolloutPolicy }}
+            </small>
+          </button>
+        } @empty {
+          <p class="empty-state">Create catalog items first, then draft values against them here.</p>
+        }
+      </div>
+
+      @if (selectedConfigItem(); as configItem) {
+        <dl class="meta-list">
+          <div>
+            <dt>Validation schema</dt>
+            <dd class="code-block">{{ configItem.validationSchemaJson }}</dd>
+          </div>
+          <div>
+            <dt>Runtime requirement</dt>
+            <dd>{{ configItem.isRequired ? 'Required at runtime' : 'Optional' }}</dd>
+          </div>
+        </dl>
+      }
+    </section>
+
+    <section class="surface-card resource-card workflow-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Draft Values</p>
+          <h3>Edit scoped values</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetDraftForm()" [disabled]="!selectedConfigItemId()">
+          New draft
+        </button>
+      </div>
+
+      <div class="resource-list compact-list">
+        @for (draft of draftsForSelectedConfigItem(); track draft.draftValueId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedDraftValueId() === draft.draftValueId"
+            (click)="selectDraft(draft)">
+            <strong>{{ draft.scopeType }} · {{ resolveScopeLabel(draft.scopeType, draft.scopeId) }}</strong>
+            <small>{{ draft.changeNote }}</small>
+          </button>
+        } @empty {
+          <p class="empty-state">No draft values exist for the selected config item yet.</p>
+        }
+      </div>
+
+      <form class="editor-grid" (ngSubmit)="saveDraft()">
+        <label class="field">
+          <span>Scope type</span>
+          <select
+            [ngModel]="draftForm.scopeType"
+            name="draftScopeType"
+            [disabled]="!selectedConfigItemId()"
+            (ngModelChange)="onScopeTypeChanged($event)">
+            <option value="Application">Application</option>
+            <option value="Environment">Environment</option>
+            <option value="NodeGroup">Node group</option>
+            <option value="ManagedNode">Managed node</option>
+            <option value="EmergencyOverride">Emergency override</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Scope target</span>
+          <select
+            [(ngModel)]="draftForm.scopeId"
+            name="draftScopeId"
+            [disabled]="!selectedConfigItemId()">
+            @for (target of availableScopeTargets(); track target.id) {
+              <option [value]="target.id">{{ target.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field field--full">
+          <span>Value JSON</span>
+          <textarea
+            [(ngModel)]="draftForm.valueJson"
+            name="draftValueJson"
+            [disabled]="!selectedConfigItemId()"
+            placeholder='Enter valid JSON, for example &quot;value&quot; or { &quot;enabled&quot;: true }'></textarea>
+        </label>
+
+        @if (draftValueMasked) {
+          <p class="field-hint field--full">
+            The current stored secret value is masked. Saving from this form will replace it with the
+            JSON you enter above.
+          </p>
+        }
+
+        <label class="field field--full">
+          <span>Change note</span>
+          <textarea
+            [(ngModel)]="draftForm.changeNote"
+            name="draftChangeNote"
+            [disabled]="!selectedConfigItemId()"></textarea>
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedConfigItemId() || activeOperation() !== null">
+            {{ draftEditingId ? 'Save draft' : 'Create draft' }}
+          </button>
+          <button class="ghost-button" type="button" (click)="deleteDraft()" [disabled]="!draftEditingId || activeOperation() !== null">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card workflow-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Effective Preview</p>
+          <h3>Resolve the active node view</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="loadPreview()" [disabled]="activeOperation() !== null">
+          {{ activeOperation() === 'load-preview' ? 'Loading preview...' : 'Load preview' }}
+        </button>
+      </div>
+
+      @if (preview(); as previewResponse) {
+        <div class="preview-summary">
+          <strong>{{ previewResponse.itemCount }} items resolved</strong>
+          <small>{{ resolveNodeName(previewResponse.managedNodeId) }} in {{ resolveEnvironmentName(previewResponse.environmentId) }}</small>
+        </div>
+
+        <div class="resource-list compact-list preview-list">
+          @for (item of previewResponse.items; track item.draftValueId) {
+            <div class="resource-item resource-item--static">
+              <strong>{{ item.fullPath }}</strong>
+              <small>{{ item.sourceScopeType }} · {{ resolveScopeLabel(item.sourceScopeType, item.sourceScopeId) }}</small>
+              <span class="preview-value code-block">{{ maskedValueLabel(item.valueJson, item.isValueMasked) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty-state">Load the effective preview to see the resolved value set for the selected node.</p>
+      }
+    </section>
+
+    <section class="surface-card resource-card workflow-card workflow-card--wide">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Release History</p>
+          <h3>Publish, diff, and roll back versions</h3>
+        </div>
+      </div>
+
+      <form class="editor-grid workflow-publish-grid" (ngSubmit)="publish()">
+        <label class="field field--full">
+          <span>Publish summary</span>
+          <textarea [(ngModel)]="publishForm.changeSummary" name="publishSummary"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Rollout policy</span>
+          <input [(ngModel)]="publishForm.rolloutPolicy" name="publishRolloutPolicy" type="text" />
+        </label>
+
+        <div class="editor-actions publish-actions">
+          <button class="action-button" type="submit" [disabled]="!selectedApplicationId() || !selectedEnvironmentId() || activeOperation() !== null">
+            {{ activeOperation() === 'publish' ? 'Publishing...' : 'Publish current drafts' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="workflow-version-layout">
+        <div class="resource-list compact-list">
+          @for (version of publishedVersions(); track version.publishedVersionId) {
+            <button
+              class="resource-item"
+              type="button"
+              [class.is-active]="selectedVersionId() === version.publishedVersionId"
+              (click)="selectVersion(version.publishedVersionId)">
+              <strong>Version {{ version.versionNumber }}</strong>
+              <small>{{ version.rolloutPolicy }} · {{ version.publishedAtUtc | date: 'medium' }}</small>
+            </button>
+          } @empty {
+            <p class="empty-state">No published versions exist for this application and environment yet.</p>
+          }
+        </div>
+
+        <div class="workflow-version-detail">
+          @if (selectedVersion(); as version) {
+            <dl class="meta-list">
+              <div>
+                <dt>Version number</dt>
+                <dd>{{ version.versionNumber }}</dd>
+              </div>
+              <div>
+                <dt>Published</dt>
+                <dd>{{ version.publishedAtUtc | date: 'medium' }}</dd>
+              </div>
+              <div>
+                <dt>Content hash</dt>
+                <dd class="code-block">{{ version.contentHash }}</dd>
+              </div>
+              <div>
+                <dt>Supersedes</dt>
+                <dd>
+                  {{ version.supersedesVersionId ? version.supersedesVersionId : 'Initial version' }}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="editor-actions workflow-version-actions">
+              <button class="ghost-button" type="button" (click)="loadSelectedDiff()" [disabled]="!version.supersedesVersionId || activeOperation() !== null">
+                {{ activeOperation() === 'load-diff' ? 'Loading diff...' : 'Load diff' }}
+              </button>
+            </div>
+
+            <label class="field field--full">
+              <span>Rollback summary</span>
+              <textarea [(ngModel)]="rollbackSummary" name="rollbackSummary"></textarea>
+            </label>
+
+            <div class="editor-actions workflow-version-actions">
+              <button class="action-button" type="button" (click)="rollbackSelectedVersion()" [disabled]="activeOperation() !== null">
+                {{ activeOperation() === 'rollback' ? 'Rolling back...' : 'Rollback to selected version' }}
+              </button>
+            </div>
+
+            @if (selectedDiff(); as diff) {
+              <div class="diff-panel">
+                <div class="resource-card__header">
+                  <div>
+                    <p class="eyebrow">Diff</p>
+                    <h3>{{ diff.changeCount }} changes</h3>
+                  </div>
+                  @if (diff.rolloutPolicyChanged) {
+                    <span class="status-pill">Rollout policy changed</span>
+                  }
+                </div>
+
+                <div class="resource-list compact-list diff-list">
+                  @for (change of diff.changes; track change.currentDraftValueId ?? change.previousDraftValueId ?? change.fullPath) {
+                    <div class="resource-item resource-item--static diff-item">
+                      <strong>{{ change.fullPath }}</strong>
+                      <small>{{ change.changeType }} · {{ change.scopeType }} · {{ resolveScopeLabel(change.scopeType, change.scopeId) }}</small>
+                      <div class="diff-values">
+                        <div>
+                          <span class="eyebrow">Before</span>
+                          <pre class="code-block">{{ maskedValueLabel(change.previousValueJson, change.isValueMasked) }}</pre>
+                        </div>
+                        <div>
+                          <span class="eyebrow">After</span>
+                          <pre class="code-block">{{ maskedValueLabel(change.currentValueJson, change.isValueMasked) }}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <p class="empty-state">No item-level changes were detected for this comparison.</p>
+                  }
+                </div>
+              </div>
+            }
+          } @else {
+            <p class="empty-state">Select a published version to inspect its diff or roll back.</p>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</section>

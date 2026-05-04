@@ -1,0 +1,27 @@
+<section class="page-shell workspace-shell">
+  <header class="surface-card shell-header">
+    <div>
+      <p class="eyebrow">Authenticated Layout</p>
+      <h1>{{ sessionStore.installationName() || 'Secret Manager' }}</h1>
+      <p class="lede">
+        Signed in as {{ sessionStore.currentUser()?.displayName }} ·
+        {{ sessionStore.currentUser()?.role }}
+      </p>
+    </div>
+
+    <div class="shell-actions">
+      <nav class="shell-nav" aria-label="Operator sections">
+        <a routerLink="/app/topology" routerLinkActive="is-active">Topology</a>
+        <a routerLink="/app/catalog" routerLinkActive="is-active">Catalog</a>
+        <a routerLink="/app/workflow" routerLinkActive="is-active">Workflow</a>
+        <a routerLink="/app/runtime" routerLinkActive="is-active">Runtime</a>
+      </nav>
+      <span class="status-pill">Session live</span>
+      <button class="ghost-button" type="button" (click)="signOut()" [disabled]="sessionStore.isBusy()">
+        {{ sessionStore.busyAction() === 'logout' ? 'Signing out...' : 'Sign out' }}
+      </button>
+    </div>
+  </header>
+
+  <router-outlet />
+</section>

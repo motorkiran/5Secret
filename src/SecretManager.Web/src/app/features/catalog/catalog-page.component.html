@@ -1,0 +1,278 @@
+<section class="workspace-page">
+  <div class="page-intro">
+    <div>
+      <p class="eyebrow">Catalog</p>
+      <h2>Manage applications, namespaces, config metadata, and assignments.</h2>
+      <p class="lede">
+        Applications define the runtime integration surface. Namespaces organize the keyspace,
+        config items carry secret and validation metadata, and assignments bind applications into
+        the topology.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="refresh()" [disabled]="store.loading()">
+      {{ store.loading() ? 'Refreshing...' : 'Refresh catalog' }}
+    </button>
+  </div>
+
+  @if (store.errorMessage()) {
+    <div class="banner banner-error">{{ store.errorMessage() }}</div>
+  }
+
+  <div class="resource-grid catalog-grid">
+    <section class="surface-card resource-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Applications</p>
+          <h3>Runtime consumers</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetApplicationForm()">New</button>
+      </div>
+
+      <div class="resource-list">
+        @for (application of store.applications(); track application.applicationId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedApplicationId() === application.applicationId"
+            (click)="selectApplication(application)">
+            <strong>{{ application.name }}</strong>
+            <small>{{ application.slug }} · {{ application.defaultIntegrationMode }}</small>
+          </button>
+        }
+      </div>
+
+      <form class="editor-grid" (ngSubmit)="saveApplication()">
+        <label class="field">
+          <span>Name</span>
+          <input [(ngModel)]="applicationForm.name" name="applicationName" type="text" />
+        </label>
+        <label class="field">
+          <span>Slug</span>
+          <input [(ngModel)]="applicationForm.slug" name="applicationSlug" type="text" />
+        </label>
+        <label class="field">
+          <span>Default integration mode</span>
+          <input [(ngModel)]="applicationForm.defaultIntegrationMode" name="applicationMode" type="text" />
+        </label>
+        <label class="field field--full">
+          <span>Description</span>
+          <textarea [(ngModel)]="applicationForm.description" name="applicationDescription"></textarea>
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit">{{ applicationEditingId ? 'Save application' : 'Create application' }}</button>
+          <button class="ghost-button" type="button" (click)="deleteApplication()" [disabled]="!applicationEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Namespaces</p>
+          <h3>Keyspace boundaries</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetNamespaceForm()" [disabled]="!selectedApplicationId()">
+          New
+        </button>
+      </div>
+
+      <div class="resource-list">
+        @for (catalogNamespace of namespacesForApplication(); track catalogNamespace.namespaceId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedNamespaceId() === catalogNamespace.namespaceId"
+            (click)="selectNamespace(catalogNamespace)">
+            <strong>{{ catalogNamespace.name }}</strong>
+            <small>{{ catalogNamespace.path }}</small>
+          </button>
+        } @empty {
+          <p class="empty-state">Select an application to define namespace boundaries.</p>
+        }
+      </div>
+
+      <form class="editor-grid" (ngSubmit)="saveNamespace()">
+        <label class="field">
+          <span>Name</span>
+          <input [(ngModel)]="namespaceForm.name" name="namespaceName" type="text" [disabled]="!selectedApplicationId()" />
+        </label>
+        <label class="field">
+          <span>Path</span>
+          <input [(ngModel)]="namespaceForm.path" name="namespacePath" type="text" [disabled]="!selectedApplicationId()" />
+        </label>
+        <label class="field field--full">
+          <span>Description</span>
+          <textarea [(ngModel)]="namespaceForm.description" name="namespaceDescription" [disabled]="!selectedApplicationId()"></textarea>
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedApplicationId()">
+            {{ namespaceEditingId ? 'Save namespace' : 'Create namespace' }}
+          </button>
+          <button class="ghost-button" type="button" (click)="deleteNamespace()" [disabled]="!namespaceEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card config-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Config Items</p>
+          <h3>Metadata and secret flags</h3>
+        </div>
+
+        <button class="ghost-button" type="button" (click)="resetConfigItemForm()" [disabled]="!selectedNamespaceId()">
+          New
+        </button>
+      </div>
+
+      <div class="resource-list compact-list">
+        @for (configItem of configItemsForApplication(); track configItem.configItemId) {
+          <button
+            class="resource-item"
+            type="button"
+            [class.is-active]="selectedConfigItemId() === configItem.configItemId"
+            (click)="selectConfigItem(configItem)">
+            <strong>{{ configItem.fullPath }}</strong>
+            <small>
+              {{ configItem.valueType }} · {{ configItem.isSecret ? 'secret' : 'plain' }} ·
+              {{ configItem.isRequired ? 'required' : 'optional' }}
+            </small>
+          </button>
+        } @empty {
+          <p class="empty-state">Create namespaces first, then define config metadata inside them.</p>
+        }
+      </div>
+
+      @if (selectedConfigItem(); as configItem) {
+        <dl class="meta-list">
+          <div>
+            <dt>Secret flag</dt>
+            <dd>{{ configItem.isSecret ? 'Masked in the operator flow' : 'Visible by default' }}</dd>
+          </div>
+          <div>
+            <dt>Validation schema</dt>
+            <dd class="code-block">{{ configItem.validationSchemaJson }}</dd>
+          </div>
+        </dl>
+      }
+
+      <form class="editor-grid" (ngSubmit)="saveConfigItem()">
+        <label class="field">
+          <span>Namespace</span>
+          <select [(ngModel)]="configItemForm.namespaceId" name="configItemNamespace" [disabled]="!selectedApplicationId()">
+            @for (catalogNamespace of namespacesForApplication(); track catalogNamespace.namespaceId) {
+              <option [ngValue]="catalogNamespace.namespaceId">{{ catalogNamespace.path }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span>Key</span>
+          <input [(ngModel)]="configItemForm.key" name="configItemKey" type="text" [disabled]="!selectedNamespaceId()" />
+        </label>
+        <label class="field">
+          <span>Value type</span>
+          <input [(ngModel)]="configItemForm.valueType" name="configItemValueType" type="text" [disabled]="!selectedNamespaceId()" />
+        </label>
+        <label class="field">
+          <span>Rollout policy</span>
+          <input [(ngModel)]="configItemForm.defaultRolloutPolicy" name="configItemRollout" type="text" [disabled]="!selectedNamespaceId()" />
+        </label>
+        <label class="checkbox-row">
+          <input [(ngModel)]="configItemForm.isSecret" name="configItemSecret" type="checkbox" />
+          Secret value
+        </label>
+        <label class="checkbox-row">
+          <input [(ngModel)]="configItemForm.isRequired" name="configItemRequired" type="checkbox" />
+          Required at runtime
+        </label>
+        <label class="field field--full">
+          <span>Validation schema JSON</span>
+          <textarea [(ngModel)]="configItemForm.validationSchemaJson" name="configItemSchema" [disabled]="!selectedNamespaceId()"></textarea>
+        </label>
+        <label class="field field--full">
+          <span>Description</span>
+          <textarea [(ngModel)]="configItemForm.description" name="configItemDescription" [disabled]="!selectedNamespaceId()"></textarea>
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedNamespaceId()">
+            {{ configItemEditingId ? 'Save config item' : 'Create config item' }}
+          </button>
+          <button class="ghost-button" type="button" (click)="deleteConfigItem()" [disabled]="!configItemEditingId">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="surface-card resource-card assignment-card">
+      <div class="resource-card__header">
+        <div>
+          <p class="eyebrow">Assignments</p>
+          <h3>Topology relationships</h3>
+        </div>
+      </div>
+
+      <div class="resource-list compact-list">
+        @for (assignment of assignmentsForApplication(); track assignment.assignmentId) {
+          <div class="resource-item resource-item--static">
+            <strong>{{ resolveEnvironmentName(assignment.environmentId) }}</strong>
+            <small>
+              {{ assignment.nodeGroupId ? resolveNodeGroupName(assignment.nodeGroupId) : resolveNodeName(assignment.managedNodeId) }} ·
+              {{ assignment.enabled ? 'enabled' : 'disabled' }}
+            </small>
+          </div>
+        } @empty {
+          <p class="empty-state">Assignments show where the selected application is active in the topology.</p>
+        }
+      </div>
+
+      <form class="editor-grid" (ngSubmit)="createAssignment()">
+        <label class="field">
+          <span>Environment</span>
+          <select [(ngModel)]="assignmentEnvironmentId" name="assignmentEnvironment" [disabled]="!selectedApplicationId()">
+            <option value="">Select environment</option>
+            @for (environment of store.environments(); track environment.environmentId) {
+              <option [value]="environment.environmentId">{{ environment.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span>Assignment target</span>
+          <select [(ngModel)]="assignmentTargetMode" name="assignmentTargetMode" [disabled]="!selectedApplicationId()">
+            <option value="nodeGroup">Node group</option>
+            <option value="managedNode">Managed node</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Target record</span>
+          <select [(ngModel)]="assignmentTargetId" name="assignmentTargetId" [disabled]="!assignmentEnvironmentId || !selectedApplicationId()">
+            <option value="">Select target</option>
+            @for (target of availableAssignmentTargets(); track assignmentTargetKey(target)) {
+              <option [value]="assignmentTargetKey(target)">{{ target.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="checkbox-row">
+          <input [(ngModel)]="assignmentEnabled" name="assignmentEnabled" type="checkbox" />
+          Enabled
+        </label>
+
+        <div class="editor-actions field--full">
+          <button class="action-button" type="submit" [disabled]="!selectedApplicationId() || !assignmentEnvironmentId || !assignmentTargetId">
+            Create assignment
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

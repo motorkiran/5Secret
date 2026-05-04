@@ -1,0 +1,57 @@
+.workspace-shell {
+  max-width: 76rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.shell-header {
+  padding: 1.75rem 2rem;
+}
+
+.shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.shell-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shell-nav {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.shell-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  color: var(--ink-strong);
+  text-decoration: none;
+  border: 1px solid rgba(20, 34, 47, 0.1);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.shell-nav a.is-active {
+  background: rgba(24, 55, 79, 0.12);
+  color: var(--signal);
+}
+
+@media (max-width: 800px) {
+  .shell-header,
+  .shell-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shell-nav {
+    flex-wrap: wrap;
+  }
+}
