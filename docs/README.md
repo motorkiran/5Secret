@@ -54,9 +54,10 @@ Read the documents in the following order when starting implementation:
 8. [UI and Operator Flows](architecture/08-ui-and-operator-flows.md)
 9. [Local Happy Path and Packaging Baseline](architecture/09-local-happy-path-and-packaging-baseline.md)
 10. [Local Installation and Operator Guide](architecture/10-local-installation-and-operator-guide.md)
-11. [Backlog Execution Rules](backlog/00-execution-rules.md)
-12. [MVP Work Items](backlog/01-mvp-work-items.md)
-13. [Phase 2 and Future Roadmap](backlog/02-phase-2-and-future-roadmap.md)
+11. [Server Deployment and Configuration Guide](architecture/11-server-deployment-and-configuration.md)
+12. [Backlog Execution Rules](backlog/00-execution-rules.md)
+13. [MVP Work Items](backlog/01-mvp-work-items.md)
+14. [Phase 2 and Future Roadmap](backlog/02-phase-2-and-future-roadmap.md)
 
 ## Design Principles
 
@@ -77,7 +78,7 @@ Read documents 1 through 9 in order.
 
 ### Path B: Implementation Planning
 
-Read documents 9 through 12 after documents 1 through 4.
+Read documents 9 through 13 after documents 1 through 4.
 
 ### Path C: Re-entry After a Break
 

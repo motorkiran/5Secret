@@ -8,6 +8,7 @@
 - Web UI stack: Angular.
 - Architecture entry point: [docs/README.md](docs/README.md).
 - Local installation and operator guide: [docs/architecture/10-local-installation-and-operator-guide.md](docs/architecture/10-local-installation-and-operator-guide.md).
+- Server deployment and configuration guide: [docs/architecture/11-server-deployment-and-configuration.md](docs/architecture/11-server-deployment-and-configuration.md).
 - Local happy-path and packaging guide: [docs/architecture/09-local-happy-path-and-packaging-baseline.md](docs/architecture/09-local-happy-path-and-packaging-baseline.md).
 
 ## Repository Layout
@@ -32,6 +33,7 @@ The documented MVP backlog is complete through `SM-028`, including the Angular o
 3. Stop dependencies with `docker compose down`.
 
 For the full local setup, startup sequence, operator workflow, and worker validation flow, use [docs/architecture/10-local-installation-and-operator-guide.md](docs/architecture/10-local-installation-and-operator-guide.md).
+For server-side installation and deployment layout, use [docs/architecture/11-server-deployment-and-configuration.md](docs/architecture/11-server-deployment-and-configuration.md).
 
 Default local development endpoints:
 

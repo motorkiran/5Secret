@@ -4,6 +4,8 @@
 
 This document is the shortest end-to-end guide for installing, starting, and using SecretManager locally.
 
+For central server deployment, per-node worker installation, reverse proxy setup, and production-style configuration injection, see [Server Deployment and Configuration Guide](11-server-deployment-and-configuration.md).
+
 Use this guide when you want to:
 
 - Prepare a fresh developer machine.
